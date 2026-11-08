@@ -4658,9 +4658,9 @@ function step(dt){dt=Math.max(dt,.001);if(TO.on){tourStep(dt);return}const KU=Ma
 const dr=G=='D'?1:G=='R'?-1:0,cap=.56+thr*(vmax-.56),acc=Math.max(.9,vmax*.35);let tgt=0,rate=.5;
 if(dr&&thr>.02){tgt=dr*cap;rate=acc}
 tgt=cl(tgt,-8.33,8.33);
-const stop=brk>.02||G=='P'||K.sp;if(!(dr&&thr>.02)&&!stop)rate=.35+.12*Math.abs(v);if(stop)tgt=0;rate+=6*brk+(K.sp?4:0)+(G=='P'?6:0);
+const stop=brk>.02||G=='P'||K.sp;if(!(dr&&thr>.02)&&!stop)rate=.9+.15*Math.abs(v);if(stop)tgt=0;rate+=6*brk+(K.sp?4:0)+(G=='P'?6:0);
 if(EST&&!AP.on){tgt=cl(tgt,-.28,.28)}
-if(TAPT>0){TAPT-=dt;const dr2=G=='D'?1:G=='R'?-1:0;if(dr2&&!(brk>.02)&&G!='P'){const tv=Math.min(vmax,Math.max(.9,Math.abs(v)*dr2*Math.sign(v||dr2)+.3));if(Math.abs(tgt)<tv)tgt=dr2*tv;rate=Math.max(rate,2.2)}}
+if(TAPT>0&&KU<.02&&performance.now()-PADT>150)TAPT=0;if(TAPT>0){TAPT-=dt;const dr2=G=='D'?1:G=='R'?-1:0;if(dr2&&!(brk>.02)&&G!='P'){const tv=Math.min(vmax,Math.max(.9,Math.abs(v)*dr2*Math.sign(v||dr2)+.3));if(Math.abs(tgt)<tv)tgt=dr2*tv;rate=Math.max(rate,2.2)}}
 if(APR.on){if(brk>.05||K.sp||G!='D'||thr>.05||GP.cv!=null||AP.on)APR.on=false;else{tgt=APR.v;rate=Math.max(rate,2)}}
 if(AP.on){tgt=AP.v;rate=1.2}else if(GP.cv!=null&&G!='P'){tgt=GP.cv;rate=Math.max(rate,2.4)}if(EST&&!AP.on)tgt=cl(tgt,-.28,.28);if(!AP.on&&(brk>.02||K.sp||G=='P')){tgt=0;rate=Math.max(rate,2+6*brk)}if(!AP.on&&!APR.on&&GP.cv==null&&TAPT<=0&&thr<.02&&Math.abs(v)<.12)tgt=0,rate=Math.max(rate,1.5);v+=cl(tgt-v,-rate*dt,rate*dt);
 const tg=AP.on?AP.d:wd?-wd.deg/LK*DM:GP.on?-GP.st*DM:(K.l-K.r)*DM,rt=tg?.4:.55;if(wd&&!AP.on)ST.d=tg;else if(AP.on)ST.d+=cl(tg-ST.d,-rt*dt,rt*dt);else if(GP.on&&Math.abs(GP.st)>.02){// el stick gira el volante a una velocidad proporcional; al soltar, el volante se queda donde está
@@ -5481,13 +5481,13 @@ function vrPad(){const gs=navigator.getGamepads?[...navigator.getGamepads()].fil
 if(!gs.length){if(GP.on){GP.on=false;GP.st=0;GP.cv=null;GP.cvh=0;K.up=0;K.dn=0;K.sp=0;lk=0;toast('🎮 ✖',1200)}gpDiag(null);return}
 const g=gs[0],bt=i=>gpBtn(g,i),pr=i=>bt(i)>.5&&!GP.b[i];gpDiag(g);
 const ax=g.axes[0]||0,st=Math.abs(ax)<.15?0:Math.sign(ax)*Math.pow((Math.abs(ax)-.15)/.85,2);
-if(bt(6)>.05||bt(7)>.05)GP.trg=true;/* algunos mandos (LZ/RZ) envían el gatillo también como eje del stick derecho: si el mando tiene gatillos, solo cuentan los gatillos */const ext=cm!=2,ry=(ext||GP.trg)?0:(g.axes[3]||0),acc=Math.max(bt(7),ry<-.3?-ry:0),brk_=Math.max(bt(6),ry>.3?ry:0);
-if(!GP.on&&(Math.abs(st)>.2||acc>.1||brk_>.1||g.buttons.some(b=>b.pressed))){GP.on=true;toast('🎮 ✔',1200);if(VR.demo){VR.demo=false;if(AP.on)apStop();}}
+if(bt(6)>.05||bt(7)>.05)GP.trg=true;/* algunos mandos (LZ/RZ) envían el gatillo también como eje del stick derecho: si el mando tiene gatillos, solo cuentan los gatillos */const ext=cm!=2,a3=g.axes[3]||0;/* v158: el eje 3 solo sirve de pedal si el mando NO es estándar y ese eje se ha visto en reposo (≈0); si reposa en ±1 es un gatillo analógico y movía el coche solo */if(GP.r3==null||GP.gid!==g.id){GP.gid=g.id;GP.r3=0;GP.r3n=0}if(Math.abs(a3)<.08)GP.r3n++;else if(Math.abs(a3)>.5&&GP.r3n<30)GP.r3n=0;const ryOk=g.mapping!='standard'&&GP.r3n>=30,ry=(ext||GP.trg||!ryOk)?0:a3,trA=bt(7),trB=bt(6),acc=Math.max(trA,ry<-.35?-ry:0),brk_=Math.max(trB,ry>.35?ry:0);
+if(!GP.on&&(Math.abs(st)>.2||acc>.25||brk_>.25||g.buttons.some((b,i)=>b.pressed&&i!=6&&i!=7))){GP.on=true;toast('🎮 ✔',1200);if(VR.demo){VR.demo=false;if(AP.on)apStop();}}
 if(!GP.on){GP.b=g.buttons.map((b,i)=>bt(i)>.5);return}
 if(pr(9)){if(VR.on)m3Toggle();else{$('menu').hidden=!$('menu').hidden;$('cpan').hidden=true;try{icoShow()}catch(e){}}}
 if(M3.open&&VR.on){GP.st=0;if(GP.la>.02)K.up=0;if(GP.lb>.02)K.dn=0;GP.la=GP.lb=0;const ay=g.axes[1]||0;
 if(pr(12)||(ay<-.6&&!(GP.ay<-.6)))m3Move(-1);if(pr(13)||(ay>.6&&!(GP.ay>.6)))m3Move(1);GP.ay=ay;const axx=g.axes[0]||0,sl_=M3.i>=9;if(pr(14)||(!sl_&&axx<-.6&&!(GP.axx<-.6)))m3Side(-1);if(pr(15)||(!sl_&&axx>.6&&!(GP.axx>.6)))m3Side(1);GP.axx=axx;if(pr(0))m3Do();if(pr(1))m3Toggle(false);GP.b=g.buttons.map((b,i)=>bt(i)>.5);return}
-GP.st=st;GP.ka=acc>.12?acc:0;if(GP.ka>0&&!GP.kap&&!(brk_>.12)){TAPT=.45;PADT=performance.now()}GP.kap=GP.ka>0;GP.kb=brk_>.12?brk_:0;GP.la=acc;GP.lb=brk_;if(GP.kb>0){GP.cv=null;GP.cvh=0}
+GP.st=st;GP.ka=acc>(GP.kap?.08:.2)?acc:0;if(GP.ka>0&&!GP.kap&&!(brk_>.12)){TAPT=.45;PADT=performance.now()}GP.kap=GP.ka>0;GP.kb=brk_>(GP.kb>0?.08:.2)?brk_:0;GP.la=acc;GP.lb=brk_;if(GP.kb>0){GP.cv=null;GP.cvh=0}
 if(pr(10)){try{if(VR.on)vrCenter();else if(cm==2)drvView();else if(cm==0){ob.yaw=0;ob.pit=.32;ob.dist=9.5}else{tp.yaw=0;tp.dist=34}}catch(e){}}
 if(ext){// vista exterior / superior: stick derecho gira y sube/baja, LB aleja, RB acerca
 const dz=v=>Math.abs(v)<.12?0:v,rx=dz(g.axes[2]||0),rv=dz(g.axes[3]||0),f=1/60;
