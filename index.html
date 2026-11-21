@@ -4596,7 +4596,8 @@ if(R.shadowMap)R.shadowMap.needsUpdate=true;$('load').remove()},e=>{console.warn
 const K={up:0,dn:0,l:0,r:0,sp:0},INI={x:13,z:-2.8,th:-Math.PI/2,v:0,d:0},ST=Object.assign({},INI),LK=540,DM=.55;
 let flash=0,cm=0,G='D',thr=0,brk=0,wd=null,vmax=5/3.6,lk=0,yaw=0,pit=0,tyaw=0,tpit=0,chf=82;const ob={yaw:0,pit:.32,dist:9.5},tp={yaw:0,dist:34};
 const kmap={w:'up',z:'up',arrowup:'up',s:'dn',arrowdown:'dn',a:'l',q:'l',arrowleft:'l',d:'r',arrowright:'r',' ':'sp'};
-addEventListener('keydown',e=>{const t=e.key.toLowerCase(),k=kmap[t];if(k){K[k]=1;e.preventDefault()}const gk={'1':'D','3':'R','4':'N','6':'P'}[e.key];if(gk)setGear(gk);if(t=='c')setCam((cm+1)%3);if(t=='j')lk=1;if(t=='l')lk=-1});
+/* v159: en Android el mando Bluetooth también llega como flechas del teclado (cruceta y stick); si hay mando conectado se ignoran, si no ↑ se quedaba pisado y el coche avanzaba solo */const padKey=e=>{if(!/^(arrow|enter$| $)/.test(e.key.toLowerCase()))return false;try{if(GP.on)return true;const gs=navigator.getGamepads?[...navigator.getGamepads()]:[];return gs.some(g=>g&&g.connected!==false)}catch(_){return false}};
+addEventListener('keydown',e=>{const t=e.key.toLowerCase(),k=kmap[t];if(k&&padKey(e)){e.preventDefault();K[k]=0;return}if(k){K[k]=1;e.preventDefault()}const gk={'1':'D','3':'R','4':'N','6':'P'}[e.key];if(gk)setGear(gk);if(t=='c')setCam((cm+1)%3);if(t=='j')lk=1;if(t=='l')lk=-1});
 addEventListener('keyup',e=>{const t=e.key.toLowerCase(),k=kmap[t];if(k)K[k]=0;if((t=='j'&&lk==1)||(t=='l'&&lk==-1))lk=0});
 const CN=['Vista exterior','Vista superior','Cabina'];
 function toast(t,ms){const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,ms||1100)}
@@ -4655,12 +4656,12 @@ for(const[ux,uz]of[[hx,hz],[hz,-hx],[bx,bz],[bz,-bx]]){let r=0;for(const[ax,az,L
 const CB=CFG.cb||{f:3.40,r:-.82,hw:.875};
 function polyHit(A,B){for(const P of[A,B])for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length],nx=q[1]-p[1],nz=p[0]-q[0];let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const v of A){const d=v[0]*nx+v[1]*nz;if(d<a0)a0=d;if(d>a1)a1=d}for(const v of B){const d=v[0]*nx+v[1]*nz;if(d<b0)b0=d;if(d>b1)b1=d}if(a1<=b0||b1<=a0)return false}return true}
 function step(dt){dt=Math.max(dt,.001);if(TO.on){tourStep(dt);return}const KU=Math.max(K.up,GP.on?GP.ka||0:0),KD=Math.max(K.dn,GP.on?GP.kb||0:0);if(KD>.05||K.sp){GP.cv=null;GP.cvh=0;TAPT=0;APR.on=false}const touchHold=K.up&&$('pa').classList.contains('down');PADH=touchHold?PADH+dt:0;thr+=(KU-thr)*Math.min(1,dt*(KU?(touchHold?(PADH<.45?0:.35):(GP.on&&GP.ka>K.up?3:.55)):6));brk+=(KD-brk)*Math.min(1,dt*(KD>brk?16:8));let v=ST.v;
-const dr=G=='D'?1:G=='R'?-1:0,cap=.56+thr*(vmax-.56),acc=Math.max(.9,vmax*.35);let tgt=0,rate=.5;
+const dr=G=='D'?1:G=='R'?-1:0,vmx=dr<0?Math.min(vmax,6/3.6):vmax,cap=.56+thr*(vmx-.56),acc=dr<0?.8:Math.max(.9,vmax*.35);let tgt=0,rate=.5;
 if(dr&&thr>.02){tgt=dr*cap;rate=acc}
 tgt=cl(tgt,-8.33,8.33);
 const stop=brk>.02||G=='P'||K.sp;if(!(dr&&thr>.02)&&!stop)rate=.9+.15*Math.abs(v);if(stop)tgt=0;rate+=6*brk+(K.sp?4:0)+(G=='P'?6:0);
 if(EST&&!AP.on){tgt=cl(tgt,-.28,.28)}
-if(TAPT>0&&KU<.02&&performance.now()-PADT>150)TAPT=0;if(TAPT>0){TAPT-=dt;const dr2=G=='D'?1:G=='R'?-1:0;if(dr2&&!(brk>.02)&&G!='P'){const tv=Math.min(vmax,Math.max(.9,Math.abs(v)*dr2*Math.sign(v||dr2)+.3));if(Math.abs(tgt)<tv)tgt=dr2*tv;rate=Math.max(rate,2.2)}}
+if(TAPT>0&&KU<.02&&performance.now()-PADT>150)TAPT=0;if(TAPT>0){TAPT-=dt;const dr2=G=='D'?1:G=='R'?-1:0;if(dr2&&!(brk>.02)&&G!='P'){const tv=Math.min(dr2<0?Math.min(vmax,6/3.6):vmax,Math.max(.9,Math.abs(v)*dr2*Math.sign(v||dr2)+.3));if(Math.abs(tgt)<tv)tgt=dr2*tv;rate=Math.max(rate,2.2)}}
 if(APR.on){if(brk>.05||K.sp||G!='D'||thr>.05||GP.cv!=null||AP.on)APR.on=false;else{tgt=APR.v;rate=Math.max(rate,2)}}
 if(AP.on){tgt=AP.v;rate=1.2}else if(GP.cv!=null&&G!='P'){tgt=GP.cv;rate=Math.max(rate,2.4)}if(EST&&!AP.on)tgt=cl(tgt,-.28,.28);if(!AP.on&&(brk>.02||K.sp||G=='P')){tgt=0;rate=Math.max(rate,2+6*brk)}if(!AP.on&&!APR.on&&GP.cv==null&&TAPT<=0&&thr<.02&&Math.abs(v)<.12)tgt=0,rate=Math.max(rate,1.5);v+=cl(tgt-v,-rate*dt,rate*dt);
 const tg=AP.on?AP.d:wd?-wd.deg/LK*DM:GP.on?-GP.st*DM:(K.l-K.r)*DM,rt=tg?.4:.55;if(wd&&!AP.on)ST.d=tg;else if(AP.on)ST.d+=cl(tg-ST.d,-rt*dt,rt*dt);else if(GP.on&&Math.abs(GP.st)>.02){// el stick gira el volante a una velocidad proporcional; al soltar, el volante se queda donde está
@@ -5482,7 +5483,7 @@ if(!gs.length){if(GP.on){GP.on=false;GP.st=0;GP.cv=null;GP.cvh=0;K.up=0;K.dn=0;K
 const g=gs[0],bt=i=>gpBtn(g,i),pr=i=>bt(i)>.5&&!GP.b[i];gpDiag(g);
 const ax=g.axes[0]||0,st=Math.abs(ax)<.15?0:Math.sign(ax)*Math.pow((Math.abs(ax)-.15)/.85,2);
 if(bt(6)>.05||bt(7)>.05)GP.trg=true;/* algunos mandos (LZ/RZ) envían el gatillo también como eje del stick derecho: si el mando tiene gatillos, solo cuentan los gatillos */const ext=cm!=2,a3=g.axes[3]||0;/* v158: el eje 3 solo sirve de pedal si el mando NO es estándar y ese eje se ha visto en reposo (≈0); si reposa en ±1 es un gatillo analógico y movía el coche solo */if(GP.r3==null||GP.gid!==g.id){GP.gid=g.id;GP.r3=0;GP.r3n=0}if(Math.abs(a3)<.08)GP.r3n++;else if(Math.abs(a3)>.5&&GP.r3n<30)GP.r3n=0;const ryOk=g.mapping!='standard'&&GP.r3n>=30,ry=(ext||GP.trg||!ryOk)?0:a3,trA=bt(7),trB=bt(6),acc=Math.max(trA,ry<-.35?-ry:0),brk_=Math.max(trB,ry>.35?ry:0);
-if(!GP.on&&(Math.abs(st)>.2||acc>.25||brk_>.25||g.buttons.some((b,i)=>b.pressed&&i!=6&&i!=7))){GP.on=true;toast('🎮 ✔',1200);if(VR.demo){VR.demo=false;if(AP.on)apStop();}}
+if(!GP.on&&(Math.abs(st)>.2||acc>.25||brk_>.25||g.buttons.some((b,i)=>b.pressed&&i!=6&&i!=7))){GP.on=true;K.up=0;K.dn=0;K.l=0;K.r=0;K.sp=0;toast('🎮 ✔',1200);if(VR.demo){VR.demo=false;if(AP.on)apStop();}}
 if(!GP.on){GP.b=g.buttons.map((b,i)=>bt(i)>.5);return}
 if(pr(9)){if(VR.on)m3Toggle();else{$('menu').hidden=!$('menu').hidden;$('cpan').hidden=true;try{icoShow()}catch(e){}}}
 if(M3.open&&VR.on){GP.st=0;if(GP.la>.02)K.up=0;if(GP.lb>.02)K.dn=0;GP.la=GP.lb=0;const ay=g.axes[1]||0;
